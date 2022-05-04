@@ -1,8 +1,38 @@
 import tensorflow as tf
+import tensorflow.keras.layers as KL
 from inception_modules import Stem, ReductionA, BasicConv2D, Conv2DLinear
 
-NUM_CLASSES = 10
+#NUM_CLASSES = 10
 
+class SEBlock(KL.Layer):
+    def __init__(self, ratio=16):
+        super(SEBlock, self).__init__()
+        self.ratio = ratio
+        
+    def build(self, input_shape):
+        channel = input_shape[-1]
+        ratio = self.ratio
+        
+        self._se = tf.keras.Sequential([
+            KL.GlobalAveragePooling1D(),
+            KL.Reshape((1, channel)),
+            KL.Dense(channel // ratio,
+                           activation='relu',
+                           kernel_initializer='he_normal',
+                           use_bias=True,
+                           bias_initializer='zeros'),
+            KL.Dense(channel,
+                           activation='sigmoid',
+                           kernel_initializer='he_normal',
+                           use_bias=True,
+                           bias_initializer='zeros')
+        ])
+        self.multiply = KL.Multiply()
+        
+    def call(self, inputs):
+        x = self._se(inputs)
+        x = self.multiply([x, inputs])
+        return x
 
 class InceptionResNetA(tf.keras.layers.Layer):
     def __init__(self):
@@ -35,6 +65,9 @@ class InceptionResNetA(tf.keras.layers.Layer):
                                  kernel_size=(1, 1),
                                  strides=1,
                                  padding="same")
+        self.se1 = SEBlock()
+        self.se2 = SEBlock()
+        self.se3 = SEBlock()
 
     def call(self, inputs, training=None, **kwargs):
         b1 = self.b1_conv(inputs, training=training)
@@ -43,6 +76,10 @@ class InceptionResNetA(tf.keras.layers.Layer):
         b3 = self.b3_conv1(inputs, training=training)
         b3 = self.b3_conv2(b3, training=training)
         b3 = self.b3_conv3(b3, training=training)
+        
+        b1 = self.se1(b1)
+        b2 = self.se2(b2)
+        b3 = self.se3(b3)
 
         x = tf.concat(values=[b1, b2, b3], axis=-1)
         x = self.conv(x, training=training)
@@ -74,12 +111,17 @@ class InceptionResNetB(tf.keras.layers.Layer):
                                  kernel_size=(1, 1),
                                  strides=1,
                                  padding="same")
+        self.se1 = SEBlock()
+        self.se2 = SEBlock()
 
     def call(self, inputs, training=None, **kwargs):
         b1 = self.b1_conv(inputs, training=training)
         b2 = self.b2_conv1(inputs, training=training)
         b2 = self.b2_conv2(b2, training=training)
         b2 = self.b2_conv3(b2, training=training)
+        
+        b1 = self.se1(b1)
+        b2 = self.se2(b2)
 
         x = tf.concat(values=[b1, b2], axis=-1)
         x = self.conv(x, training=training)
@@ -112,12 +154,17 @@ class InceptionResNetC(tf.keras.layers.Layer):
                                  kernel_size=(1, 1),
                                  strides=1,
                                  padding="same")
+        self.se1 = SEBlock()
+        self.se2 = SEBlock()
 
     def call(self, inputs, training=None, **kwargs):
         b1 = self.b1_conv(inputs, training=training)
         b2 = self.b2_conv1(inputs, training=training)
         b2 = self.b2_conv2(b2, training=training)
         b2 = self.b2_conv3(b2, training=training)
+        
+        b1 = self.se1(b1)
+        b2 = self.se2(b2)
 
         x = tf.concat(values=[b1, b2], axis=-1)
         x = self.conv(x, training=training)
@@ -210,9 +257,9 @@ class InceptionResNetV2(tf.keras.Model):
         self.inception_resnet_c = build_inception_resnet_c(5)
         self.avgpool = tf.keras.layers.AveragePooling2D(pool_size=(8, 8))
         self.dropout = tf.keras.layers.Dropout(rate=0.2)
-        self.flat = tf.keras.layers.Flatten()
-        self.fc = tf.keras.layers.Dense(units=NUM_CLASSES,
-                                        activation=tf.keras.activations.softmax)
+        #self.flat = tf.keras.layers.Flatten()
+        #self.fc = tf.keras.layers.Dense(units=NUM_CLASSES,
+        #                                activation=tf.keras.activations.softmax)
 
     def call(self, inputs, training=None, mask=None):
         x = self.stem(inputs, training=training)
@@ -223,7 +270,7 @@ class InceptionResNetV2(tf.keras.Model):
         x = self.inception_resnet_c(x, training=training)
         x = self.avgpool(x)
         x = self.dropout(x, training=training)
-        x = self.flat(x)
-        x = self.fc(x)
+        #x = self.flat(x)
+        #x = self.fc(x)
 
         return x
