@@ -31,7 +31,6 @@ class SEBlock(KL.Layer):
         
     def call(self, inputs):
         x = self._se(inputs)
-        print(inputs, x)
         x = self.multiply([x, inputs])
         return x
 
@@ -256,7 +255,7 @@ class InceptionResNetV2(tf.keras.Model):
         self.inception_resnet_b = build_inception_resnet_b(10)
         self.reduction_b = ReductionB()
         self.inception_resnet_c = build_inception_resnet_c(5)
-        self.avgpool = tf.keras.layers.AveragePooling2D(pool_size=(8, 8))
+        #self.avgpool = tf.keras.layers.AveragePooling2D(pool_size=(8, 8))
         self.dropout = tf.keras.layers.Dropout(rate=0.2)
         #self.flat = tf.keras.layers.Flatten()
         #self.fc = tf.keras.layers.Dense(units=NUM_CLASSES,
@@ -269,8 +268,8 @@ class InceptionResNetV2(tf.keras.Model):
         x = self.inception_resnet_b(x, training=training)
         x = self.reduction_b(x, training=training)
         x = self.inception_resnet_c(x, training=training)
-        x = self.avgpool(x)
-        x = self.dropout(x, training=training)
+        #x = self.avgpool(x)
+        #x = self.dropout(x, training=training)
         #x = self.flat(x)
         #x = self.fc(x)
 
