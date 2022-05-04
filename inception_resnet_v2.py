@@ -24,7 +24,8 @@ class SEBlock(KL.Layer):
                            activation='sigmoid',
                            kernel_initializer='he_normal',
                            use_bias=True,
-                           bias_initializer='zeros')
+                           bias_initializer='zeros'),
+            KL.Reshape((1,1,channel))
         ])
         self.multiply = KL.Multiply()
         
