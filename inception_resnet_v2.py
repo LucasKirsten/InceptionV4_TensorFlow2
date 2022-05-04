@@ -14,8 +14,7 @@ class SEBlock(KL.Layer):
         ratio = self.ratio
         
         self._se = tf.keras.Sequential([
-            KL.GlobalAveragePooling1D(),
-            KL.Reshape((1, channel)),
+            KL.GlobalAveragePooling2D(),
             KL.Dense(channel // ratio,
                            activation='relu',
                            kernel_initializer='he_normal',
