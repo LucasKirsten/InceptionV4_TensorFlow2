@@ -31,6 +31,7 @@ class SEBlock(KL.Layer):
         
     def call(self, inputs):
         x = self._se(inputs)
+        print(inputs, x)
         x = self.multiply([x, inputs])
         return x
 
